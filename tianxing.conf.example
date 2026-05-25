@@ -1,0 +1,35 @@
+# TianXing Tunnel 配置文件
+# 服务端和客户端共用此文件格式
+
+# ============ 服务端配置 ============
+bind_addr = 0.0.0.0
+bind_port = 7000
+web_port = 4200
+
+# Web 管理后台认证（不配置则无需认证）
+web_user = admin
+web_pass = your_password_here
+
+# 允许的 Token（可配置多个）
+token = my_secret_token_1
+token = my_secret_token_2
+
+# ============ 客户端配置 ============
+# server_addr = 127.0.0.1
+# server_port = 7000
+# token = my_secret_token_1
+# name = my-client
+
+# 客户端本地 API
+# api_port = 7500
+# api_token = api_bearer_token_here
+
+# ============ 映射规则 ============
+# 在 [mapping] 段下配置持久化映射
+# 格式1: type=<tcp|udp> remote_port=<端口> local_ip=<IP> local_port=<端口>
+# 格式2: <tcp|udp> <远程端口> <本地IP> <本地端口>
+
+[mapping]
+type=tcp remote_port=8080 local_ip=127.0.0.1 local_port=80
+type=tcp remote_port=3306 local_ip=127.0.0.1 local_port=3306
+# tcp 6379 127.0.0.1 6379
