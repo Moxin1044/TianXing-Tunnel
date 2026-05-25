@@ -63,22 +63,36 @@ jobs:
           echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
 
       - name: Build server
+        working-directory: server
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           GOARM: ${{ matrix.goarm }}
           CGO_ENABLED: "0"
         run: |
-          mkdir -p build/${{ matrix.tag }}/server build/${{ matrix.tag }}/client
+          mkdir -p ../build/${{ matrix.tag }}/server
           if [ "${{ matrix.goos }}" = "windows" ]; then
             SERVER_BIN=tianxing-server.exe
-            CLIENT_BIN=tianxing-client.exe
           else
             SERVER_BIN=tianxing-server
+          fi
+          go build -ldflags "-s -w -X main.Version=${{ steps.info.outputs.version }} -X main.BuildTime=${{ steps.info.outputs.build_time }} -X main.GoVersion=${{ steps.info.outputs.go_ver }}" -o ../build/${{ matrix.tag }}/server/$SERVER_BIN .
+
+      - name: Build client
+        working-directory: client
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p ../build/${{ matrix.tag }}/client
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            CLIENT_BIN=tianxing-client.exe
+          else
             CLIENT_BIN=tianxing-client
           fi
-          go build -ldflags "-s -w -X main.Version=${{ steps.info.outputs.version }} -X main.BuildTime=${{ steps.info.outputs.build_time }} -X main.GoVersion=${{ steps.info.outputs.go_ver }}" -o build/${{ matrix.tag }}/server/$SERVER_BIN ./server
-          go build -ldflags "-s -w -X main.Version=${{ steps.info.outputs.version }} -X main.BuildTime=${{ steps.info.outputs.build_time }} -X main.GoVersion=${{ steps.info.outputs.go_ver }}" -o build/${{ matrix.tag }}/client/$CLIENT_BIN ./client
+          go build -ldflags "-s -w -X main.Version=${{ steps.info.outputs.version }} -X main.BuildTime=${{ steps.info.outputs.build_time }} -X main.GoVersion=${{ steps.info.outputs.go_ver }}" -o ../build/${{ matrix.tag }}/client/$CLIENT_BIN .
 
       - name: Copy config files
         run: |
