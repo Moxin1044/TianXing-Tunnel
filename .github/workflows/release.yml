@@ -1,0 +1,142 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            tag: linux-amd64
+          - goos: linux
+            goarch: 386
+            tag: linux-i386
+          - goos: linux
+            goarch: arm
+            goarm: "6"
+            tag: linux-armhf
+          - goos: linux
+            goarch: arm64
+            tag: linux-arm64
+          - goos: windows
+            goarch: amd64
+            tag: windows-amd64
+          - goos: windows
+            goarch: 386
+            tag: windows-i386
+          - goos: windows
+            goarch: arm64
+            tag: windows-arm64
+          - goos: darwin
+            goarch: arm64
+            tag: darwin-arm64
+          - goos: darwin
+            goarch: amd64
+            tag: darwin-amd64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Get version info
+        id: info
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          GO_VER=$(go version | awk '{print $3}')
+          BUILD_TIME=$(date -u +%Y-%m-%d_%H%M%S)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "go_ver=$GO_VER" >> $GITHUB_OUTPUT
+          echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
+
+      - name: Build server
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p build/${{ matrix.tag }}/server build/${{ matrix.tag }}/client
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            SERVER_BIN=tianxing-server.exe
+            CLIENT_BIN=tianxing-client.exe
+          else
+            SERVER_BIN=tianxing-server
+            CLIENT_BIN=tianxing-client
+          fi
+          go build -ldflags "-s -w -X main.Version=${{ steps.info.outputs.version }} -X main.BuildTime=${{ steps.info.outputs.build_time }} -X main.GoVersion=${{ steps.info.outputs.go_ver }}" -o build/${{ matrix.tag }}/server/$SERVER_BIN ./server
+          go build -ldflags "-s -w -X main.Version=${{ steps.info.outputs.version }} -X main.BuildTime=${{ steps.info.outputs.build_time }} -X main.GoVersion=${{ steps.info.outputs.go_ver }}" -o build/${{ matrix.tag }}/client/$CLIENT_BIN ./client
+
+      - name: Copy config files
+        run: |
+          cp server.conf build/${{ matrix.tag }}/server/tianxing.conf
+          cp client.conf build/${{ matrix.tag }}/client/tianxing.conf
+
+      - name: Create archive
+        run: |
+          cd build
+          tar -czf ${{ matrix.tag }}.tar.gz ${{ matrix.tag }}/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.tag }}
+          path: build/${{ matrix.tag }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: TianXing Tunnel ${{ github.ref_name }}
+          body: |
+            ## TianXing Tunnel ${{ github.ref_name }}
+
+            ### Downloads
+            | Platform | Architecture | File |
+            |----------|-------------|------|
+            | Linux | AMD64 | `linux-amd64.tar.gz` |
+            | Linux | i386 | `linux-i386.tar.gz` |
+            | Linux | ARMhf | `linux-armhf.tar.gz` |
+            | Linux | ARM64 | `linux-arm64.tar.gz` |
+            | Windows | AMD64 | `windows-amd64.tar.gz` |
+            | Windows | i386 | `windows-i386.tar.gz` |
+            | Windows | ARM64 | `windows-arm64.tar.gz` |
+            | macOS | ARM64 | `darwin-arm64.tar.gz` |
+            | macOS | AMD64 | `darwin-amd64.tar.gz` |
+
+            ### Usage
+            ```bash
+            # Server
+            ./tianxing-server tianxing.conf
+
+            # Client
+            ./tianxing-client tianxing.conf
+            ```
+          files: artifacts/*.tar.gz
+          draft: false
+          prerelease: false
