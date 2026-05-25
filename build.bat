@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 REM ==================== Version Configuration ====================
-set VERSION=1.0.1
+set VERSION=1.0.2
 
 REM ==================== Project Paths ====================
 set PROJECT_DIR=%~dp0
