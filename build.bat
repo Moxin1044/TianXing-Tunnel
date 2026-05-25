@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 REM ==================== Version Configuration ====================
-set VERSION=1.0.6
+set VERSION=1.0.7
 
 REM ==================== Project Paths ====================
 set PROJECT_DIR=%~dp0
@@ -79,8 +79,45 @@ echo   Build complete! (%FAILED% failed)
 echo   Output directory: %BUILD_DIR%
 echo ============================================
 
+if %FAILED% neq 0 (
+    echo.
+    echo [SKIP] Git tag and push skipped due to build failures.
+    endlocal
+    exit /b %FAILED%
+)
+
+REM ==================== Git Tag and Push ====================
+echo.
+set GIT_TAG=V%VERSION%
+
+REM Check if tag already exists
+git tag -l "%GIT_TAG%" | findstr /x "%GIT_TAG%" >nul 2>&1
+if %ERRORLEVEL%==0 (
+    echo [SKIP] Tag %GIT_TAG% already exists.
+    endlocal
+    exit /b 0
+)
+
+echo [5/5] Creating git tag %GIT_TAG% and pushing...
+git tag %GIT_TAG%
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Failed to create tag %GIT_TAG%
+    endlocal
+    exit /b 1
+)
+
+git push origin %GIT_TAG%
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Failed to push tag %GIT_TAG%
+    endlocal
+    exit /b 1
+)
+
+echo   Tag %GIT_TAG% created and pushed successfully.
+echo   GitHub Actions will build and create a Release.
+
 endlocal
-exit /b %FAILED%
+exit /b 0
 
 REM ==================== Build Function ====================
 :build_target
