@@ -780,7 +780,7 @@ body{background:var(--tx-bg);color:var(--tx-text);font-family:'Segoe UI',system-
 </style>`
 
 const pageNav = `<nav class="navbar navbar-expand-lg"><div class="container">
-<a class="navbar-brand" href="/">TianXing Tunnel<span>v1.0</span></a>
+<a class="navbar-brand" href="/">天行 Tunnel<span>v1.0</span></a>
 <div class="navbar-nav ms-auto">
 <a class="nav-link NAV_DASH" href="/">仪表盘</a>
 <a class="nav-link NAV_TUNNEL" href="/tunnels">隧道</a>
@@ -793,7 +793,7 @@ func (s *Server) pageDashboard(c *gin.Context) {
 <html lang="zh-CN" data-bs-theme="dark">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TianXing Tunnel - 仪表盘</title>
+<title>天行 Tunnel - 仪表盘</title>
 <link href="/static/bootstrap.min.css" rel="stylesheet">
 `+pageStyle+`
 </head>
@@ -838,7 +838,7 @@ func (s *Server) pageTunnels(c *gin.Context) {
 <html lang="zh-CN" data-bs-theme="dark">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TianXing Tunnel - 隧道管理</title>
+<title>天行 Tunnel - 隧道管理</title>
 <link href="/static/bootstrap.min.css" rel="stylesheet">
 `+pageStyle+`
 </head>
@@ -878,7 +878,7 @@ func (s *Server) pageClients(c *gin.Context) {
 <html lang="zh-CN" data-bs-theme="dark">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TianXing Tunnel - 客户端</title>
+<title>天行 Tunnel - 客户端</title>
 <link href="/static/bootstrap.min.css" rel="stylesheet">
 `+pageStyle+`
 </head>
