@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'V*'
 
 permissions:
   contents: write
@@ -55,7 +55,7 @@ jobs:
       - name: Get version info
         id: info
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
+          VERSION=${GITHUB_REF_NAME#V}
           GO_VER=$(go version | awk '{print $3}')
           BUILD_TIME=$(date -u +%Y-%m-%d_%H%M%S)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
