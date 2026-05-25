@@ -237,6 +237,10 @@ type Client struct {
 	connected bool
 	stopCh    chan struct{}
 	stats     ClientStats
+
+	// Connection error rate limiter
+	lastErrLog map[string]time.Time // key -> last log time
+	errLogMu   sync.Mutex
 }
 
 type ClientStats struct {
@@ -247,9 +251,23 @@ type ClientStats struct {
 
 func NewClient(cfg *ClientConfig) *Client {
 	return &Client{
-		cfg:      cfg,
-		mappings: make(map[int]*MappingRule),
+		cfg:        cfg,
+		mappings:   make(map[int]*MappingRule),
+		lastErrLog: make(map[string]time.Time),
 	}
+}
+
+// logRateLimited logs an error message at most once per 5 seconds per key
+func (c *Client) logRateLimited(key, format string, args ...interface{}) {
+	c.errLogMu.Lock()
+	now := time.Now()
+	if last, ok := c.lastErrLog[key]; ok && now.Sub(last) < 5*time.Second {
+		c.errLogMu.Unlock()
+		return
+	}
+	c.lastErrLog[key] = now
+	c.errLogMu.Unlock()
+	log.Printf(format, args...)
 }
 
 func (c *Client) connect() error {
@@ -393,7 +411,7 @@ func (c *Client) handleNewConn(workID, localIP string, localPort int) {
 	localAddr := fmt.Sprintf("%s:%d", localIP, localPort)
 	localConn, err := net.DialTimeout("tcp", localAddr, 5*time.Second)
 	if err != nil {
-		log.Printf("[Client] Connect to local %s failed: %v", localAddr, err)
+		c.logRateLimited("local_"+localAddr, "[Client] Connect to local %s failed: %v", localAddr, err)
 		return
 	}
 
@@ -403,7 +421,7 @@ func (c *Client) handleNewConn(workID, localIP string, localPort int) {
 	proxyConn, err := net.DialTimeout("tcp", proxyAddr, 5*time.Second)
 	if err != nil {
 		localConn.Close()
-		log.Printf("[Client] Connect to proxy failed: %v", err)
+		c.logRateLimited("proxy_"+proxyAddr, "[Client] Connect to proxy failed: %v", err)
 		return
 	}
 
@@ -751,11 +769,12 @@ func runCLICommand(cfg *ClientConfig, args []string) {
 // ==================== Main Entry ====================
 
 const clientBanner = `
-  _____ _   _  ___   __ _____ _____
- |_   _| | | | \ \ / /|_   _|  __ \
-   | | | | | |  \ V /   | | | |  | |
-   | | | |_| |   | |    | | | |  | |
-   |_|  \___/    |_|    |_| |_|  |_|
+___________.__              ____  ___.__                
+\__    ___/|__|____    ____ \   \/  /|__| ____    ____  
+  |    |   |  \__  \  /    \ \     / |  |/    \  / ___\ 
+  |    |   |  |/ __ \|   |  \/     \ |  |   |  \/ /_/  >
+  |____|   |__(____  /___|  /___/\  \|__|___|  /\___  / 
+                   \/     \/      \_/        \//_____/  
    Tunnel Client v%s
 `
 
